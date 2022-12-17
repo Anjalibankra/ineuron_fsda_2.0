@@ -1,0 +1,108 @@
+ 
+ create or replace table sales_data_final_ab
+(order_id varchar(50),
+order_date varchar(50),
+ship_date varchar(50), 
+ship_mode varchar(50),
+customer_name varchar(50),
+segment varchar(50),
+state varchar(50),
+country varchar(40),
+market varchar (50),
+region varchar (60),
+product_id varchar (70),
+category varchar(80),
+sub_category varchar(80),
+product_name varchar(500),
+sales VARCHAR(50),
+quantity varchar (70),
+discount varchar (70),
+profit varchar (70),
+shipping_cost varchar(70),
+order_priority varchar(70),
+year varchar(30));
+ 
+ 
+ select * from sales_data_final_ab;
+ describe table sales_data_final_ab;
+ 
+ ----1..set primary key-----
+ ALTER TABLE SALES_DATA_FINAL_AB
+ ADD PRIMARY KEY (ORDER_ID);
+ 
+ 
+ ----2---change data type---
+---AS DATA TYPE IS NOT CHANGING FROM VARCHAR TO DATE ;FIRST WILL RENAME THE ORDER_DATE AS ORDER_DATE_NEW AND WILL MAKE A NEW COLUMN AS ORDER_DATE(WITH DATE DATA TYPE) AGAIN
+------AND WILL SET ORDER_DATE = NEW_ORDER_DATE 
+---THEN WILL DELETE NEW_ORDER_DATE COLUMN AND GET ORDER_DATE AS DATE DATA TYPE
+
+alter table sales_data_final_ab rename column order_date to new_order_date ;
+alter table sales_data_final_ab add column order_date date ;
+update sales_data_final_ab set order_date = new_order_date;
+alter table sales_data_final_ab drop  new_order_date;
+desc table sales_data_final_ab;
+select * from sales_data_final_ab;
+ 
+ --change ship_date varchar to ship_date date
+ 
+ 
+ 
+ alter table sales_data_final_Ab rename column ship_date to new_ship_date ;
+alter table sales_data_final_Ab add column ship_date date;
+update sales_data_final_ab set ship_date = new_ship_date;
+alter table sales_data_final_ab drop new_ship_date;
+desc table sales_data_final_ab;
+ 
+select * from sales_data_final_ab;
+ 
+----. 3...EXTRACT THE LAST NUMBER AFTER THE - AND CREATE OTHER COLUMN AND UPDATE IT.
+ 
+ SELECT order_id,SUBSTR(ORDER_ID,9,7) AS ORDER_NUMBER FROM SALES_DATA_FINAL_AB;
+ 
+ select * from sales_data_final_ab;
+ 
+ 
+------- 4.  FLAG ,IF DISCOUNT IS GREATER THEN 0 THEN  YES ELSE FALSE AND PUT IT IN NEW COLUMN FRO EVERY ORDER ID.---- 
+
+ SELECT *,
+ CASE 
+ WHEN DISCOUNT >0 THEN 'YES'
+ ELSE'FALSE'
+ END AS NEW_DISCOUNT
+ FROM SALES_DATA_FINAL_AB;
+ 
+------ 5..FIND OUT THE FINAL PROFIT AND PUT IT IN COLUMN FOR EVERY ORDER ID.-------
+select order_id ,
+sum (profit)final_profit 
+from sales_data_final_ab
+group by order_id;
+ 
+ select * from sales_data_final_ab;
+ 
+---6 FIND OUT HOW MUCH DAYS TAKEN FOR EACH ORDER TO PROCESS FOR THE SHIPMENT FOR EVERY ORDER ID.
+select order_id,
+ship_date - order_date
+as days_to_ship
+from sales_data_final_ab
+group by order_id,order_date,ship_date;
+
+
+SELECT * FROM SALES_DATA_FINAL_AB;
+
+ ---7 FLAG THE PROCESS DAY AS BY RATING IF IT TAKES 
+ ----LESS OR EQUAL 3  DAYS MAKE 5
+ ----,LESS OR EQUAL THAN 6 DAYS BUT MORE THAN 3 MAKE 4,
+ ----LESS THAN 10 BUT MORE THAN 6 MAKE 3
+ ----,MORE THAN 10 MAKE IT 2 FOR EVERY ORDER ID.
+
+ select order_id,
+ ship_date -order_date 
+ as days_to_ship,
+ case
+ when days_to_ship<=3 then 5
+ when days_to_ship between 3 and 6 then 4
+ when days_to_ship between 6 and 10 then 3
+ else  2
+ end as days_rating
+ from sales_data_final_ab
+ group by order_id,ship_date,order_date;
