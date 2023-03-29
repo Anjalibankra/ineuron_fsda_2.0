@@ -1,0 +1,207 @@
+select * from sales;
+select * from menu ;
+select * from members;
+
+
+
+--q1 What is the total amount each customer spent at the restaurant?
+
+select 
+s.customer_id , 
+sum(m.price) 
+from sales s 
+inner join menu m on m.product_id = s.product_id
+group by s.customer_id
+order by customer_id ;
+
+
+--q2 How many days has each customer visited the restaurant?
+
+select customer_id ,
+count(distinct order_date ) as days_visited
+from sales 
+group by customer_id
+
+
+
+--q3 What was the first item from the menu purchased by each customer? 
+
+
+
+
+
+with cte as(
+select 
+customer_id ,
+product_id,
+order_date,
+rank()over(partition by customer_id order by order_date)as rnk
+from sales)
+select c.customer_id  ,
+m.product_name 
+from cte c
+inner join menu m on m.product_id = c.product_id
+where rnk = 1
+order by customer_id
+
+--q4 What is the most purchased item on the menu and how many times was it purchased by all customers?
+
+select s.product_id ,m.product_name, count(s.product_id) as times_purchased
+from sales s
+inner join menu m on m.product_id = s.product_id
+group by  s.product_id ,m.product_name
+order by count(s.product_id) desc 
+limit 1
+
+
+--q5 Which item was the most popular for each customer?
+
+with cte as(
+select s.product_id ,s.customer_id,count(s.product_id) as my_count ,m.product_name,
+rank()over(partition by customer_id order by count(s.product_id) desc)	as rnk
+from sales s
+inner join menu m on s.product_id = m.product_id
+group by s.product_id , s.customer_id , m.product_name
+)
+select customer_id , product_id , product_name as popular_product_name
+from cte 
+where rnk= 1
+
+
+
+
+ --q6  Which item was purchased first by the customer after they became a member?
+ 
+ select * from members;
+ select * from sales;
+ 
+ 
+ with cte as(
+ select s.customer_id , mn.product_name , m.join_date , s.order_date , 
+ row_number()over(partition by s.customer_id)as row_num
+ from sales s 
+ inner join members m on m.customer_id = s.customeR_id
+ inner join menu mn on mn.product_id = s.product_id
+ where s.order_date >= m.join_date )
+ select customer_id , product_name as product_puchased_After_member
+ from cte 
+ where row_num = 1
+ 
+ 
+
+ --q7 Which item was purchased just before the customer became a member?
+ 
+
+with cte as( select s.customer_id , mn.product_name , mn.product_id,
+ rank()over(partition by s.customer_id order by s.order_date desc)as rnk
+ from sales s 
+ inner join members m on m.customer_id = s.customeR_id
+ inner join menu mn on mn.product_id = s.product_id
+ where s.order_date < m.join_date )
+ select customer_id,product_id , product_name
+ from cte
+where rnk = 1
+ 
+select * from menu;
+
+
+
+--q8 What is the total items and amount spent for each member before they became a member?
+
+
+select 
+s.customer_id,
+count(s.product_id)as total_items_purchased,
+sum(m.price)
+from sales s 
+inner join menu m on m.product_id = s.product_id
+inner join members mb on mb.customer_id = s.customer_id
+where s.order_date < mb.join_date
+group by s.customer_id
+order by s.customer_id ;
+
+
+
+--q9 If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
+with cte as(
+select product_name,customer_id,
+case when product_name = 'sushi' then  20 * price 
+else 10 * price
+end as points 
+from menu m
+inner join sales s on s.product_id = m.product_id)
+select sum(points),customer_id
+from cte 
+group by customer_id
+order by customer_id ;
+ 
+
+--q10 In the first week after a customer joins the program (including their join date)
+--they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
+
+
+
+
+select 
+s.customer_id, 
+sum(
+case
+when s.order_date between mem.join_date and mem.join_date + INTERVAL '6 days' then price * 20
+when product_name = 'sushi' then price * 20
+else price * 10 
+end ) as points 
+from menu m
+inner join sales s on  s.product_id = m.product_id
+inner join  members mem on mem.customer_id = s.customer_id 
+where
+order_date between '2021-01-01'  and '2021-01-31' 
+group by S.customer_id
+order by customer_id ;
+
+
+
+
+
+----Bonus Questions 
+--1.join tables
+
+select 
+s.customer_id,
+s.order_date	,
+m.product_name,
+m.price,
+case when s.order_date >= mb.join_date  then 'Y' else 'N'
+end as  member
+from sales s 
+inner join menu m on s.product_id = m.product_id
+left join members mb on mb.customer_id = s.customer_id 
+ORDER BY 
+s.customer_id, 
+order_date, 
+price desc;
+
+
+--2 ..
+
+With cte as(
+select 
+s.customer_id,
+s.order_date	,
+m.product_name,
+m.price,
+case when s.order_date >= mb.join_date  then 'Y' else 'N'
+end as  member
+from sales s 
+inner join menu m on s.product_id = m.product_id
+left join members mb on mb.customer_id = s.customer_id 
+ORDER BY 
+s.customer_id, 
+order_date, 
+price desc
+)
+select * ,
+case when member = 'Y' then rank()over(partition by customer_id,member order by order_date)
+else null
+end as ranking
+from cte ;
+
